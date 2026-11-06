@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกความดี</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Sarabun', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+        .header { background: linear-gradient(45deg, #2196F3, #21CBF3); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        .connection-status { background: rgba(255,255,255,0.2); padding: 10px; border-radius: 8px; margin-top: 15px; font-size: 14px; transition: all 0.3s; display: inline-block; }
+        .status-online { color: #00ff88; border: 1px solid #00ff88; }
+        .status-offline { color: #ff6b6b; border: 1px solid #ff6b6b; }
+        .backup-bar { background: #f1f3f5; padding: 12px 20px; border-bottom: 1px solid #dee2e6; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; align-items: center; }
+        .backup-bar .btn { padding: 10px 18px; font-size: 14px; }
+        .backup-bar .info-text { font-size: 13px; color: #495057; margin-right: auto; }
+        .nav-tabs { display: flex; flex-wrap: wrap; background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
+        .nav-tab { flex: 1; padding: 15px; text-align: center; background: #e9ecef; border: none; cursor: pointer; font-size: 16px; font-weight: bold; transition: all 0.3s; min-width: 120px; }
+        .nav-tab.active { background: white; color: #2196F3; border-bottom: 3px solid #2196F3; }
+        .nav-tab:hover { background: #f1f3f5; }
+        .tab-content { display: none; padding: 30px; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .tab-content.active { display: block; }
+        .main-grid, .student-grid, .items-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; margin-bottom: 30px; }
+        .form-section, .records-section, .list-section { background: #f8f9fa; padding: 25px; border-radius: 10px; border: 1px solid #e9ecef; }
+        .form-section h2, .records-section h2, .list-section h2 { color: #2c3e50; margin-bottom: 20px; font-size: 1.5em; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #34495e; }
+        .form-group select, .form-group input, .form-group textarea { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 16px; transition: border-color 0.3s; font-family: 'Sarabun', sans-serif; }
+        .form-group select:focus, .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #3498db; box-shadow: 0 0 5px rgba(52, 152, 219, 0.3); }
+        .activity-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .activity-btn { padding: 15px; border: 2px solid #ddd; background: white; border-radius: 8px; cursor: pointer; transition: all 0.3s; text-align: center; font-weight: bold; }
+        .activity-btn:hover { background: #e8f4fd; border-color: #3498db; }
+        .activity-btn.active { background: #3498db; color: white; border-color: #2980b9; }
+        .submit-btn { width: 100%; padding: 15px; background: linear-gradient(45deg, #27ae60, #2ecc71); color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4); }
+        .submit-btn:disabled { background: #95a5a6; cursor: not-allowed; transform: none; box-shadow: none; }
+        .loading { display: none; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; text-align: center; border: 1px solid #ecf0f1; transition: transform 0.3s, box-shadow 0.3s; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2em; font-weight: bold; color: #2c3e50; }
+        .stat-label { color: #7f8c8d; margin-top: 5px; }
+        .records-table, .student-list-table, .items-table { background: white; border-radius: 8px; overflow: hidden; border: 1px solid #ecf0f1; max-height: 500px; overflow-y: auto; display: block; }
+        .records-table table, .student-list-table table, .items-table table { width: 100%; border-collapse: collapse; }
+        .records-table th, .student-list-table th, .items-table th { background: #34495e; color: white; padding: 15px 10px; text-align: left; font-weight: bold; position: sticky; top: 0; z-index: 1;}
+        .records-table td, .student-list-table td, .items-table td { padding: 12px 10px; border-bottom: 1px solid #ecf0f1; vertical-align: middle; }
+        .records-table tr:hover, .student-list-table tr:hover, .items-table tr:hover { background: #f8f9fa; }
+        .score-badge { background: #3498db; color: white; padding: 5px 10px; border-radius: 15px; font-weight: bold; font-size: 0.9em; }
+        .activity-tag { background: #e74c3c; color: white; padding: 3px 8px; border-radius: 10px; font-size: 0.8em; font-weight: bold; display: inline-block; }
+        .status-badge { padding: 5px 10px; border-radius: 15px; font-weight: bold; font-size: 0.9em; color: white; }
+        .status-remaining { background: #e67e22; }
+        .status-claimed { background: #27ae60; }
+        .btn { padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.3s; font-size: 14px; }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .alert-container { position: fixed; top: 20px; right: 20px; z-index: 1050; width: 300px; }
+        .alert { padding: 15px; border-radius: 8px; margin-bottom: 10px; opacity: 1; transition: opacity 0.5s, transform 0.5s; transform: translateX(0); color: white; }
+        .alert.hide { opacity: 0; transform: translateX(20px); }
+        .alert-success { background: #2ecc71; }
+        .alert-danger { background: #e74c3c; }
+        .alert-warning { background: #f39c12; }
+        .alert-info { background: #3498db; }
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid #fff; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .reports-tab .form-section { background-color: #f8f9fa; }
+        .top-students { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .student-card { background: white; border-radius: 10px; padding: 20px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.3s; position: relative; overflow: hidden; }
+        .student-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
+        .student-rank { position: absolute; top: 10px; left: 10px; background: #3498db; color: white; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2em; }
+        .student-name { font-size: 1.3em; font-weight: bold; color: #2c3e50; margin-top: 20px; margin-bottom: 10px; }
+        .student-score { font-size: 1.8em; color: #27ae60; font-weight: bold; }
+        /* Manual / Guide Styles */
+        .manual-section { background: white; border-radius: 10px; padding: 25px; margin-bottom: 20px; border: 1px solid #e9ecef; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .manual-section h3 { color: #2196F3; border-bottom: 2px solid #2196F3; padding-bottom: 10px; margin-bottom: 15px; font-size: 1.4em; }
+        .manual-section h4 { color: #2c3e50; margin-top: 15px; margin-bottom: 10px; font-size: 1.15em; }
+        .manual-section p, .manual-section li { color: #495057; line-height: 1.8; }
+        .manual-section ul, .manual-section ol { padding-left: 25px; margin-bottom: 10px; }
+        .manual-section .highlight-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 15px; margin: 12px 0; border-radius: 5px; }
+        .manual-section .danger-box { background: #f8d7da; border-left: 4px solid #dc3545; padding: 12px 15px; margin: 12px 0; border-radius: 5px; }
+        .manual-section .info-box { background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 12px 15px; margin: 12px 0; border-radius: 5px; }
+        .manual-section .success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 12px 15px; margin: 12px 0; border-radius: 5px; }
+        .manual-section code { background: #f1f3f5; padding: 2px 6px; border-radius: 4px; font-family: 'Courier New', monospace; color: #e74c3c; font-size: 0.95em; }
+        .manual-section kbd { background: #2c3e50; color: white; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        .step-number { display: inline-block; background: #2196F3; color: white; width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px; font-weight: bold; margin-right: 8px; }
+        /* Settings Tab Styles */
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .image-upload-box { border: 2px dashed #b0bec5; border-radius: 10px; padding: 20px; text-align: center; background: white; transition: all 0.3s; }
+        .image-upload-box:hover { border-color: #3498db; background: #f8fbff; }
+        .image-preview { max-width: 100%; max-height: 150px; margin: 10px auto; display: block; border-radius: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .image-preview-empty { color: #95a5a6; padding: 30px; font-style: italic; }
+        .signature-preview { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 5px; padding: 10px; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+        .signature-preview img { max-height: 100px; max-width: 100%; }
+        .file-input-wrapper { position: relative; display: inline-block; margin-top: 10px; }
+        .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        .btn-upload { background: #3498db; color: white; padding: 8px 16px; border-radius: 5px; display: inline-block; cursor: pointer; font-weight: bold; }
+        .btn-upload:hover { background: #2980b9; }
+        .btn-remove-img { background: #e74c3c; color: white; padding: 5px 12px; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; margin-top: 5px; }
+        .settings-info { background: #e3f2fd; border-left: 4px solid #2196F3; padding: 12px 15px; border-radius: 5px; margin-bottom: 20px; font-size: 14px; color: #1565c0; }
+        /* Footer */
+        .footer { background: #2c3e50; color: #bdc3c7; padding: 12px 15px; text-align: center; border-top: 2px solid #2196F3; }
+        .footer .copyright { font-size: 12px; font-weight: bold; color: #ecf0f1; margin-bottom: 4px; }
+        .footer .footer-notice { font-size: 11px; color: #95a5a6; line-height: 1.5; max-width: 700px; margin: 0 auto; }
+        @media (max-width: 992px) { .main-grid, .student-grid, .items-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .nav-tabs { flex-direction: column; } .stats-grid { grid-template-columns: 1fr; } .activity-buttons { grid-template-columns: 1fr; } .header h1 { font-size: 2em; } .alert-container { width: 90%; right: 5%; } .backup-bar { justify-content: flex-start; } .backup-bar .info-text { width: 100%; margin-right: 0; text-align: center; } .footer .copyright { font-size: 11px; } .footer .footer-notice { font-size: 10px; } }
+    </style>
+</head>
+<body>
+    <div id="loginOverlay" style="position:fixed;inset:0;z-index:1040;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);display:none;align-items:center;justify-content:center;padding:20px;">
+        <div style="background:#fff;border-radius:15px;padding:30px;width:100%;max-width:380px;box-shadow:0 10px 30px rgba(0,0,0,.3);text-align:center;">
+            <h2 style="margin-bottom:12px;">🏆 ระบบบันทึกความดี</h2>
+            <p id="loginMsg" style="color:#c0392b;font-size:16px;"></p>
+        </div>
+    </div>
+    <div id="loadingOverlay" style="display:none;position:fixed;inset:0;z-index:1045;background:rgba(255,255,255,.75);align-items:center;justify-content:center;font-size:18px;font-weight:bold;color:#2c3e50;"><span id="loadingText">กำลังโหลด...</span></div>
+    <div id="alertContainer" class="alert-container"></div>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 ระบบบันทึกความดี</h1>
+            <p>ส่งเสริมคุณธรรม จริยธรรม (เชื่อมต่อ Google Sheets)</p>
+            <div class="connection-status status-online" id="connectionStatus">
+                <span id="statusIcon">⏳</span> <span id="statusText">กำลังเชื่อมต่อ...</span>
+            </div>
+        </div>
+
+        <!-- Backup/Import Bar -->
+        <div class="backup-bar">
+            <span class="info-text"></span>
+            <button class="btn btn-success" onclick="backupData()">💾 สำรองข้อมูล (Backup)</button>
+            <button class="btn btn-primary" onclick="document.getElementById('importFileInput').click()">📥 นำเข้าข้อมูล (Import)</button>
+            <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importData(event)">
+            <button class="btn btn-danger" onclick="clearAllData()">🗑️ ล้างข้อมูลทั้งหมด</button>
+            <button class="btn btn-primary" onclick="reloadFromServer(true)">🔄 รีเฟรช</button>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab(event, 'record-tab')">📝 บันทึกความดี</button>
+            <button class="nav-tab" onclick="showTab(event, 'items-tab')">📦 รายการของ</button>
+            <button class="nav-tab" onclick="showTab(event, 'students-tab')">🧑‍🎓 จัดการนักเรียน</button>
+            <button class="nav-tab" onclick="showTab(event, 'reports-tab')">📊 รายงานสรุป</button>
+            <button class="nav-tab" onclick="showTab(event, 'settings-tab')">⚙️ ตั้งค่าระบบ</button>
+            <button class="nav-tab" onclick="showTab(event, 'manual-tab')">📖 คู่มือการใช้งาน</button>
+        </div>
+
+        <!-- Tab: Record Deed -->
+        <div id="record-tab" class="tab-content active">
+            <div class="main-grid">
+                <div class="form-section">
+                    <h2 id="form-title">📝 บันทึกความดี</h2>
+                    <form id="goodDeedForm">
+                         <input type="hidden" id="editingTimestamp" value="">
+                        <div class="form-group">
+                            <label for="studentSearch">ค้นหานักเรียน (ผู้ทำความดี):</label>
+                            <input type="text" id="studentSearch" placeholder="พิมพ์ชื่อ หรือ ชั้นเรียน เพื่อค้นหา..." style="margin-bottom: 10px;">
+                            <select id="studentSelect" required>
+                                <option value="">-- เลือกนักเรียน --</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label for="dateInput">วันที่:</label><input type="date" id="dateInput" required></div>
+                        <div class="form-group">
+                            <label>ประเภทกิจกรรม:</label>
+                            <div class="activity-buttons">
+                                <button type="button" class="activity-btn" data-activity="lost-found">📦 ของหายได้คืน</button>
+                                <button type="button" class="activity-btn" data-activity="money-found">💰 เงินหายได้คืน</button>
+                                <button type="button" class="activity-btn" data-activity="trash-pickup">🗑️ เก็บขยะ</button>
+                                <button type="button" class="activity-btn" data-activity="help-teacher">👩‍🏫 ช่วยงานครู</button>
+                                <button type="button" class="activity-btn" data-activity="other-good">✨ ความดีอื่นๆ</button>
+                            </div>
+                        </div>
+                        <div class="form-group" id="itemDescriptionGroup" style="display: none;"><label for="itemDescription">รายละเอียดของที่พบ:</label><input type="text" id="itemDescription" placeholder="เช่น กระเป๋าสีดำ, กล่องดินสอ"></div>
+                        <div class="form-group" id="moneyAmountGroup" style="display: none;"><label for="moneyAmount">จำนวนเงิน (บาท):</label><input type="number" id="moneyAmount" min="0" step="0.01" placeholder="0.00"></div>
+                        <div class="form-group"><label for="description">รายละเอียดเพิ่มเติม:</label><textarea id="description" rows="3" placeholder="เช่น พบที่สนามเด็กเล่น..."></textarea></div>
+                        <div class="form-group"><label for="pointsInput">คะแนนที่ได้รับ:</label><input type="number" id="pointsInput" min="1" value="5"></div>
+                        <button type="submit" class="submit-btn" id="submitBtn"><span class="loading spinner"></span><span class="btn-text">💾 บันทึกความดี</span></button>
+                        <button type="button" class="btn" id="cancelEditBtn" style="width: 100%; margin-top: 10px; background: #7f8c8d; color: white; display: none;" onclick="cancelEdit()">ยกเลิกการแก้ไข</button>
+                    </form>
+                </div>
+                <div class="records-section">
+                    <h2>📊 สถิติและประวัติการบันทึก</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-number" id="totalRecords">0</div><div class="stat-label">ครั้งที่บันทึก</div></div>
+                        <div class="stat-card"><div class="stat-number" id="totalPoints">0</div><div class="stat-label">คะแนนรวม</div></div>
+                        <div class="stat-card"><div class="stat-number" id="totalStudents">0</div><div class="stat-label">นักเรียนทั้งหมด</div></div>
+                        <div class="stat-card"><div class="stat-number" id="todayRecords">0</div><div class="stat-label">บันทึกวันนี้</div></div>
+                    </div>
+                    <div class="records-table">
+                        <table>
+                            <thead><tr><th>วันที่</th><th>ชื่อ-นามสกุล</th><th>กิจกรรม</th><th>คะแนน</th><th>จัดการ</th></tr></thead>
+                            <tbody id="recordsTableBody"><tr><td colspan="5" style="text-align: center; color: #7f8c8d; padding: 30px;">ยังไม่มีข้อมูล</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Items -->
+        <div id="items-tab" class="tab-content">
+            <div class="items-grid">
+                <div class="list-section">
+                    <h2>📦 รายการของที่ยังคงเหลือ</h2>
+                    <div class="items-table">
+                        <table id="remainingItemsTable">
+                            <thead><tr><th>วันที่พบ</th><th>ของที่พบ</th><th>ผู้พบ</th><th>จัดการ</th></tr></thead>
+                            <tbody id="remainingItemsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="list-section">
+                    <h2>✅ ประวัติการรับคืนทั้งหมด</h2>
+                    <div class="items-table">
+                        <table id="claimedItemsTable">
+                             <thead><tr><th>วันที่รับคืน</th><th>ของที่พบ</th><th>ผู้รับคืน</th><th>ผู้พบเดิม</th></tr></thead>
+                            <tbody id="claimedItemsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Student Management -->
+        <div id="students-tab" class="tab-content">
+            <div class="student-grid">
+                <div class="form-section">
+                    <h2>🧑‍🎓 เพิ่มนักเรียนใหม่</h2>
+                    <form id="addStudentForm">
+                        <div class="form-group"><label for="studentClass">ชั้น:</label><input type="text" id="studentClass" placeholder="เช่น ป.1/1" required></div>
+                        <div class="form-group"><label for="studentNumber">เลขที่:</label><input type="number" id="studentNumber" min="1" required></div>
+                        <div class="form-group"><label for="studentPrefix">คำนำหน้า:</label><input type="text" id="studentPrefix" placeholder="เช่น เด็กชาย, นางสาว" required></div>
+                        <div class="form-group"><label for="studentFirstName">ชื่อจริง:</label><input type="text" id="studentFirstName" required></div>
+                        <div class="form-group"><label for="studentLastName">นามสกุล:</label><input type="text" id="studentLastName" required></div>
+                        <button type="submit" class="submit-btn">➕ เพิ่มนักเรียน</button>
+                    </form>
+                    <hr style="margin: 30px 0; border-color: #dee2e6;">
+                    <h2>📥 นำเข้าจาก Excel</h2>
+                     <div class="alert alert-warning" style="color: #856404; background: #fff3cd; border: 1px solid #ffeaa7; margin-bottom: 15px;">
+                        <strong>คำแนะนำ:</strong> ไฟล์ Excel ต้องมี 5 คอลัมน์ เรียงตามลำดับ:
+                        <br>A: ชั้น, B: เลขที่, C: คำนำหน้า, D: ชื่อ, E: นามสกุล (ไม่ต้องมีหัวตาราง)
+                    </div>
+                    <div class="form-group">
+                        <label for="excelFileInput">เลือกไฟล์ Excel (.xlsx):</label>
+                        <input type="file" id="excelFileInput" class="form-control" accept=".xlsx, .xls" style="padding: 5px;">
+                    </div>
+                    <button id="importExcelBtn" class="btn btn-success" style="width: 100%;">นำเข้าข้อมูลจาก Excel</button>
+                </div>
+                <div class="list-section">
+                    <h2>📋 รายชื่อนักเรียนทั้งหมด</h2>
+                    <div class="student-list-table">
+                        <table id="studentListTable">
+                            <thead><tr><th>ชั้น</th><th>เลขที่</th><th>ชื่อ-นามสกุล</th><th>จัดการ</th></tr></thead>
+                            <tbody id="studentListBody"><tr><td colspan="4" style="text-align: center; color: #7f8c8d; padding: 30px;">ยังไม่มีข้อมูลนักเรียน</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Reports -->
+        <div id="reports-tab" class="tab-content">
+            <div class="form-section">
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px;">
+                    <h2>🏅 นักเรียนยอดเยี่ยม TOP 10</h2>
+                    <div>
+                        <button onclick="exportToExcel()" class="btn btn-success">📊 ส่งออก Excel</button>
+                        <button onclick="printReport()" class="btn btn-primary">🖨️ พิมพ์รายงาน</button>
+                    </div>
+                </div>
+                <div class="top-students" id="topStudents"><div style="grid-column: 1 / -1; text-align: center; color: #7f8c8d; padding: 30px;">ยังไม่มีข้อมูลคะแนน</div></div>
+            </div>
+             <div class="form-section" style="margin-top: 20px;">
+                <h2>📋 หมายเหตุและคำแนะนำ</h2>
+                <div style="background: #e9f7fd; border: 1px solid #d0ebf9; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                    <h3 style="color: #0c5460; margin-bottom: 15px;">เกณฑ์การให้คะแนน (ค่าเริ่มต้น):</h3>
+                    <ul style="color: #31708f; margin: 0; padding-left: 20px;">
+                        <li><strong>ของหายได้คืน:</strong> 5 คะแนน</li>
+                        <li><strong>เงินหายได้คืน:</strong> 1 บาท = 1 คะแนน (ขั้นต่ำ 1 คะแนน)</li>
+                        <li><strong>เก็บขยะ:</strong> 3 คะแนน</li>
+                        <li><strong>ช่วยงานครู:</strong> 4 คะแนน</li>
+                        <li><strong>ความดีอื่นๆ:</strong> 5 คะแนน (ปรับแก้ได้)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Settings -->
+        <div id="settings-tab" class="tab-content">
+            <div class="form-section">
+                <h2>⚙️ ตั้งค่าข้อมูลสถานศึกษา</h2>
+                <div class="settings-info">
+                    💡 ข้อมูลที่กรอกในส่วนนี้จะแสดงในรายงานที่พิมพ์ออกมา (หัวกระดาษ และส่วนลงนาม) รวมถึงถูกบันทึกในไฟล์สำรองข้อมูลด้วย
+                </div>
+
+                <form id="settingsForm">
+                    <h3 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">🏫 ข้อมูลทั่วไป</h3>
+
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label for="schoolName">ชื่อโรงเรียน:</label>
+                            <input type="text" id="schoolName" placeholder="เช่น โรงเรียนบ้านห้วยใหญ่">
+                        </div>
+                        <div class="form-group">
+                            <label for="schoolYear">ปีการศึกษา:</label>
+                            <input type="text" id="schoolYear" placeholder="เช่น 2569">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="schoolAddress">ที่อยู่โรงเรียน:</label>
+                        <input type="text" id="schoolAddress" placeholder="เช่น ตำบล... อำเภอ... จังหวัด...">
+                    </div>
+
+                    <h3 style="color: #2c3e50; margin: 25px 0 15px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">🖼️ ตราสัญลักษณ์ (โลโก้)</h3>
+                    <div class="image-upload-box">
+                        <div id="logoPreviewContainer">
+                            <div class="image-preview-empty" id="logoEmpty">ยังไม่มีรูปโลโก้</div>
+                            <img id="logoPreview" class="image-preview" style="display:none;">
+                        </div>
+                        <div class="file-input-wrapper">
+                            <span class="btn-upload">📤 เลือกไฟล์โลโก้</span>
+                            <input type="file" id="logoInput" accept="image/*">
+                        </div>
+                        <button type="button" class="btn-remove-img" id="removeLogoBtn" style="display:none;" onclick="removeLogo()">🗑️ ลบโลโก้</button>
+                        <p style="font-size: 12px; color: #7f8c8d; margin-top: 8px;">รองรับ .jpg, .png, .gif (จะถูกย่อขนาดอัตโนมัติ)</p>
+                    </div>
+
+                    <h3 style="color: #2c3e50; margin: 25px 0 15px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">👤 ข้อมูลผู้บริหาร</h3>
+
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label for="directorName">ชื่อ-นามสกุล ผู้อำนวยการ:</label>
+                            <input type="text" id="directorName" placeholder="เช่น นายสมชาย ใจดี">
+                        </div>
+                        <div class="form-group">
+                            <label for="directorPosition">ตำแหน่ง:</label>
+                            <input type="text" id="directorPosition" placeholder="ผู้อำนวยการโรงเรียน" value="ผู้อำนวยการโรงเรียน">
+                        </div>
+                    </div>
+
+                    <div class="image-upload-box">
+                        <label style="font-weight: bold; color: #34495e;">ลายเซ็นดิจิทัล ผู้อำนวยการ:</label>
+                        <div class="signature-preview" id="directorSigContainer" style="margin-top: 10px;">
+                            <div class="image-preview-empty" id="directorSigEmpty">ยังไม่มีลายเซ็น</div>
+                            <img id="directorSigPreview" style="display:none;">
+                        </div>
+                        <div class="file-input-wrapper">
+                            <span class="btn-upload">📤 เลือกไฟล์ลายเซ็น</span>
+                            <input type="file" id="directorSigInput" accept="image/*">
+                        </div>
+                        <button type="button" class="btn-remove-img" id="removeDirectorSigBtn" style="display:none;" onclick="removeDirectorSig()">🗑️ ลบลายเซ็น</button>
+                        <p style="font-size: 12px; color: #7f8c8d; margin-top: 8px;">แนะนำ: รูป PNG พื้นหลังโปร่งใส</p>
+                    </div>
+
+                    <h3 style="color: #2c3e50; margin: 25px 0 15px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">👥 รองผู้อำนวยการ (ไม่บังคับ)</h3>
+
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label for="deputyName">ชื่อ-นามสกุล รองผู้อำนวยการ:</label>
+                            <input type="text" id="deputyName" placeholder="(เว้นว่างได้)">
+                        </div>
+                        <div class="form-group">
+                            <label for="deputyPosition">ตำแหน่ง:</label>
+                            <input type="text" id="deputyPosition" placeholder="รองผู้อำนวยการโรงเรียน" value="รองผู้อำนวยการโรงเรียน">
+                        </div>
+                    </div>
+
+                    <div class="image-upload-box">
+                        <label style="font-weight: bold; color: #34495e;">ลายเซ็นดิจิทัล รองผู้อำนวยการ:</label>
+                        <div class="signature-preview" id="deputySigContainer" style="margin-top: 10px;">
+                            <div class="image-preview-empty" id="deputySigEmpty">ยังไม่มีลายเซ็น</div>
+                            <img id="deputySigPreview" style="display:none;">
+                        </div>
+                        <div class="file-input-wrapper">
+                            <span class="btn-upload">📤 เลือกไฟล์ลายเซ็น</span>
+                            <input type="file" id="deputySigInput" accept="image/*">
+                        </div>
+                        <button type="button" class="btn-remove-img" id="removeDeputySigBtn" style="display:none;" onclick="removeDeputySig()">🗑️ ลบลายเซ็น</button>
+                    </div>
+
+                    <button type="submit" class="submit-btn" style="margin-top: 25px;">💾 บันทึกการตั้งค่า</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tab: Manual / User Guide -->
+        <div id="manual-tab" class="tab-content">
+            <div class="manual-section">
+                <h3>📖 คู่มือการใช้งานระบบบันทึกความดี</h3>
+                <p>ระบบนี้ออกแบบมาเพื่อบันทึกความดีของนักเรียน เก็บข้อมูลของหาย/เงินหาย และจัดอันดับนักเรียนที่ทำความดี โดย<strong>เก็บข้อมูลทั้งหมดในเบราว์เซอร์ของเครื่องนี้</strong> (LocalStorage) ไม่ต้องเชื่อมต่ออินเทอร์เน็ต</p>
+
+                <div class="info-box">
+                    <strong>💡 หลักการสำคัญ:</strong> ข้อมูลถูกเก็บอยู่ในเบราว์เซอร์ของเครื่องคอมพิวเตอร์ที่ใช้งาน หากต้องการใช้กับเครื่องอื่น หรือเปลี่ยนเบราว์เซอร์ ต้อง<strong>สำรองข้อมูล (Backup)</strong> และ<strong>นำเข้า (Import)</strong> ผ่านปุ่มด้านบน
+                </div>
+            </div>
+
+            <div class="manual-section">
+                <h3>🚀 เริ่มต้นใช้งานครั้งแรก</h3>
+                <ol>
+                    <li><span class="step-number">1</span><strong>เพิ่มข้อมูลนักเรียน:</strong> ไปที่แท็บ <code>🧑‍🎓 จัดการนักเรียน</code> เพื่อกรอกข้อมูลทีละคน หรือนำเข้าจากไฟล์ Excel</li>
+                    <li><span class="step-number">2</span><strong>บันทึกความดี:</strong> กลับมาที่แท็บ <code>📝 บันทึกความดี</code> เลือกนักเรียน เลือกประเภทกิจกรรม กรอกรายละเอียด และกดบันทึก</li>
+                    <li><span class="step-number">3</span><strong>สำรองข้อมูล:</strong> หลังจากบันทึกข้อมูลเสร็จ ให้กดปุ่ม <code>💾 สำรองข้อมูล (Backup)</code> เพื่อดาวน์โหลดไฟล์ JSON เก็บไว้</li>
+                </ol>
+            </div>
+
+            <div class="manual-section">
+                <h3>📝 แท็บที่ 1: บันทึกความดี</h3>
+                <h4>วิธีบันทึกความดีใหม่</h4>
+                <ol>
+                    <li>พิมพ์ชื่อหรือชั้นเรียนในช่อง "ค้นหานักเรียน" เพื่อหานักเรียนได้รวดเร็ว</li>
+                    <li>เลือกนักเรียนจากรายการ Dropdown</li>
+                    <li>ระบุวันที่ที่ทำความดี (ค่าเริ่มต้นคือวันนี้)</li>
+                    <li>คลิกเลือกประเภทกิจกรรม 1 ประเภท:
+                        <ul>
+                            <li><strong>📦 ของหายได้คืน:</strong> จะมีช่องให้ใส่รายละเอียดของที่พบ และข้อมูลจะเข้าไปอยู่ในแท็บ "รายการของ"</li>
+                            <li><strong>💰 เงินหายได้คืน:</strong> จะมีช่องให้ใส่จำนวนเงิน คะแนนจะคำนวณอัตโนมัติ (1 บาท = 1 คะแนน)</li>
+                            <li><strong>🗑️ เก็บขยะ / 👩‍🏫 ช่วยงานครู / ✨ ความดีอื่นๆ:</strong> เป็นความดีทั่วไป</li>
+                        </ul>
+                    </li>
+                    <li>กรอกรายละเอียดเพิ่มเติม (ถ้ามี)</li>
+                    <li>ปรับคะแนนตามที่เหมาะสม (ค่าเริ่มต้นจะถูกตั้งไว้ตามประเภทกิจกรรม)</li>
+                    <li>กดปุ่ม <code>💾 บันทึกความดี</code></li>
+                </ol>
+
+                <h4>การแก้ไขและลบรายการ</h4>
+                <ul>
+                    <li>ปุ่ม <strong style="color:#f39c12;">แก้ไข</strong>: ดึงข้อมูลกลับมาในฟอร์มเพื่อแก้ไข กดบันทึกเพื่ออัปเดต</li>
+                    <li>ปุ่ม <strong style="color:#e74c3c;">ลบ</strong>: ลบบันทึกความดีนี้ หากเป็นรายการของหาย/เงินหาย จะลบรายการของที่เกี่ยวข้องด้วย</li>
+                </ul>
+                <div class="highlight-box">
+                    <strong>⚠️ ข้อควรระวัง:</strong> รายการของหาย/เงินหายที่ถูกรับคืนไปแล้ว จะไม่สามารถแก้ไขได้ (ลบได้อย่างเดียว)
+                </div>
+            </div>
+
+            <div class="manual-section">
+                <h3>📦 แท็บที่ 2: รายการของ</h3>
+                <p>แท็บนี้แสดงรายการของหาย/เงินหาย ที่บันทึกผ่านแท็บ "บันทึกความดี" โดยแบ่งเป็น 2 ส่วน:</p>
+                <ul>
+                    <li><strong>📦 รายการของที่ยังคงเหลือ:</strong> ของที่ยังไม่มีคนมารับคืน มีปุ่ม "รับคืน" สำหรับบันทึกชื่อผู้รับ</li>
+                    <li><strong>✅ ประวัติการรับคืนทั้งหมด:</strong> ของที่ถูกรับคืนไปแล้ว พร้อมชื่อผู้รับและวันที่</li>
+                </ul>
+                <h4>วิธีบันทึกการรับคืน</h4>
+                <ol>
+                    <li>หาของในตาราง "รายการของที่ยังคงเหลือ"</li>
+                    <li>กดปุ่ม <strong style="color:#27ae60;">รับคืน</strong></li>
+                    <li>กรอกชื่อ-นามสกุลของนักเรียนที่มารับของคืน แล้วกดตกลง</li>
+                </ol>
+            </div>
+
+            <div class="manual-section">
+                <h3>🧑‍🎓 แท็บที่ 3: จัดการนักเรียน</h3>
+                <h4>การเพิ่มนักเรียนทีละคน</h4>
+                <p>กรอกข้อมูล ชั้น เลขที่ คำนำหน้า ชื่อจริง นามสกุล แล้วกดปุ่ม <code>➕ เพิ่มนักเรียน</code></p>
+
+                <h4>การนำเข้าจากไฟล์ Excel</h4>
+                <div class="info-box">
+                    <strong>รูปแบบไฟล์ Excel ที่ต้องการ:</strong> ต้องมี 5 คอลัมน์เรียงตามลำดับ และ<strong>ไม่ต้องมีหัวตาราง</strong>
+                    <table style="width:100%; margin-top:10px; border-collapse:collapse;">
+                        <thead style="background:#34495e; color:white;">
+                            <tr><th style="padding:8px;">A</th><th style="padding:8px;">B</th><th style="padding:8px;">C</th><th style="padding:8px;">D</th><th style="padding:8px;">E</th></tr>
+                        </thead>
+                        <tbody style="background:white;">
+                            <tr><td style="padding:8px; border:1px solid #ddd;">ป.1/1</td><td style="padding:8px; border:1px solid #ddd;">1</td><td style="padding:8px; border:1px solid #ddd;">เด็กชาย</td><td style="padding:8px; border:1px solid #ddd;">สมชาย</td><td style="padding:8px; border:1px solid #ddd;">ใจดี</td></tr>
+                            <tr><td style="padding:8px; border:1px solid #ddd;">ป.1/1</td><td style="padding:8px; border:1px solid #ddd;">2</td><td style="padding:8px; border:1px solid #ddd;">เด็กหญิง</td><td style="padding:8px; border:1px solid #ddd;">สมหญิง</td><td style="padding:8px; border:1px solid #ddd;">น่ารัก</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <ol>
+                    <li>คลิกที่ช่อง "เลือกไฟล์ Excel" แล้วเลือกไฟล์ .xlsx</li>
+                    <li>กดปุ่ม <code>นำเข้าข้อมูลจาก Excel</code></li>
+                </ol>
+
+                <h4>การลบนักเรียน</h4>
+                <p>กดปุ่ม <strong style="color:#e74c3c;">ลบ</strong> ในตารางรายชื่อ ระบบจะถามยืนยันก่อนลบ</p>
+            </div>
+
+            <div class="manual-section">
+                <h3>📊 แท็บที่ 4: รายงานสรุป</h3>
+                <ul>
+                    <li><strong>🏅 TOP 10:</strong> แสดงนักเรียนที่มีคะแนนสะสมสูงสุด 10 อันดับแรก</li>
+                    <li><strong>📊 ส่งออก Excel:</strong> ดาวน์โหลดข้อมูลทั้งหมดเป็นไฟล์ Excel (.xlsx) ที่มี 3 ชีต ได้แก่ ประวัติความดี, รายการของ, และสรุปคะแนน</li>
+                    <li><strong>🖨️ พิมพ์รายงาน:</strong> เปิดหน้าต่างพิมพ์รายงาน TOP 10 และสถิติรวม</li>
+                </ul>
+            </div>
+
+            <div class="manual-section">
+                <h3>⚙️ แท็บที่ 5: ตั้งค่าระบบ</h3>
+                <p>แท็บนี้ใช้กรอกข้อมูลสถานศึกษาที่จะนำไปแสดงในรายงานที่พิมพ์ออกมา</p>
+
+                <h4>ข้อมูลที่กรอกได้</h4>
+                <ul>
+                    <li><strong>ข้อมูลทั่วไป:</strong> ชื่อโรงเรียน, ปีการศึกษา, ที่อยู่</li>
+                    <li><strong>ตราสัญลักษณ์ (โลโก้):</strong> รูปภาพโลโก้โรงเรียน จะแสดงด้านบนสุดของรายงาน</li>
+                    <li><strong>ข้อมูลผู้อำนวยการ:</strong> ชื่อ-นามสกุล, ตำแหน่ง, และลายเซ็นดิจิทัล</li>
+                    <li><strong>ข้อมูลรองผู้อำนวยการ:</strong> ไม่บังคับกรอก หากกรอกจะแสดงคู่กับผู้อำนวยการในรายงาน</li>
+                </ul>
+
+                <h4>การอัปโหลดรูปภาพ</h4>
+                <div class="info-box">
+                    <strong>💡 ระบบจะย่อขนาดรูปอัตโนมัติ</strong> เพื่อประหยัดพื้นที่ LocalStorage:
+                    <ul style="margin-top:8px;">
+                        <li>โลโก้: ย่อเหลือสูงสุด 300x300 พิกเซล</li>
+                        <li>ลายเซ็น: ย่อเหลือสูงสุด 400x200 พิกเซล</li>
+                    </ul>
+                    แนะนำให้ใช้รูปลายเซ็นเป็น <strong>PNG พื้นหลังโปร่งใส</strong> เพื่อให้ดูสวยงามในรายงาน
+                </div>
+
+                <h4>การนำข้อมูลไปใช้</h4>
+                <p>เมื่อบันทึกข้อมูลแล้ว ข้อมูลจะปรากฏใน <strong>รายงานที่พิมพ์</strong> (ปุ่ม 🖨️ พิมพ์รายงาน ในแท็บรายงานสรุป) โดย:</p>
+                <ul>
+                    <li>โลโก้และชื่อโรงเรียน แสดงเป็นหัวกระดาษ</li>
+                    <li>ลายเซ็นและชื่อผู้บริหาร แสดงในส่วนท้ายรายงาน</li>
+                </ul>
+                <div class="success-box">
+                    <strong>✅ คำแนะนำ:</strong> กรอกข้อมูลในแท็บนี้ครั้งเดียว ระบบจะจดจำไว้ในเครื่อง และนำไปใช้ในรายงานทุกครั้ง
+                </div>
+            </div>
+
+            <div class="manual-section">
+                <h3>💾 การสำรองข้อมูล (Backup) และนำเข้า (Import)</h3>
+                <div class="danger-box">
+                    <strong>🚨 สำคัญมาก!</strong> ข้อมูลเก็บอยู่ในเบราว์เซอร์ของเครื่องนี้เท่านั้น หาก:
+                    <ul style="margin-top:8px;">
+                        <li>ล้างประวัติเบราว์เซอร์ (Clear browsing data)</li>
+                        <li>ติดตั้งเบราว์เซอร์ใหม่ หรือเปลี่ยนเครื่อง</li>
+                        <li>ใช้โหมดไม่ระบุตัวตน (Incognito/Private)</li>
+                    </ul>
+                    <strong>ข้อมูลจะหายทั้งหมด!</strong> ดังนั้นต้องสำรองข้อมูลอย่างสม่ำเสมอ
+                </div>
+
+                <h4>📤 วิธีสำรองข้อมูล (Backup)</h4>
+                <ol>
+                    <li>กดปุ่ม <code>💾 สำรองข้อมูล (Backup)</code> ที่ด้านบนของหน้า</li>
+                    <li>ระบบจะดาวน์โหลดไฟล์ <code>backup-good-deeds-YYYY-MM-DD.json</code></li>
+                    <li>เก็บไฟล์นี้ไว้ในที่ปลอดภัย เช่น Google Drive, USB Drive, อีเมล</li>
+                </ol>
+                <div class="success-box">
+                    <strong>✅ คำแนะนำ:</strong> ควรสำรองข้อมูลอย่างน้อยสัปดาห์ละครั้ง หรือทุกครั้งหลังจากเพิ่มข้อมูลจำนวนมาก
+                </div>
+
+                <h4>📥 วิธีนำเข้าข้อมูล (Import)</h4>
+                <ol>
+                    <li>กดปุ่ม <code>📥 นำเข้าข้อมูล (Import)</code> ที่ด้านบนของหน้า</li>
+                    <li>เลือกไฟล์ <code>.json</code> ที่เคยสำรองไว้</li>
+                    <li>ระบบจะถามยืนยัน เพราะการนำเข้าจะ<strong>ทับข้อมูลเดิม</strong>ทั้งหมด</li>
+                    <li>กด "ตกลง" เพื่อนำเข้า</li>
+                </ol>
+
+                <h4>🔄 การย้ายข้อมูลไปเครื่องอื่น</h4>
+                <ol>
+                    <li>ที่<strong>เครื่องเดิม</strong>: กด <code>💾 สำรองข้อมูล</code> เพื่อดาวน์โหลดไฟล์ JSON</li>
+                    <li>ส่งไฟล์ JSON ไปยังเครื่องใหม่ (ผ่านอีเมล, USB, Cloud Drive)</li>
+                    <li>ที่<strong>เครื่องใหม่</strong>: เปิดไฟล์ HTML ของระบบ</li>
+                    <li>กด <code>📥 นำเข้าข้อมูล</code> และเลือกไฟล์ JSON ที่ส่งมา</li>
+                    <li>ตรวจสอบข้อมูลให้ครบถ้วน</li>
+                </ol>
+            </div>
+
+            <div class="manual-section">
+                <h3>🗑️ การล้างข้อมูลทั้งหมด</h3>
+                <div class="danger-box">
+                    <strong>⚠️ ระวัง!</strong> ปุ่ม <code>🗑️ ล้างข้อมูลทั้งหมด</code> จะลบข้อมูล<strong>ทุกอย่าง</strong>ในระบบ ได้แก่ รายชื่อนักเรียน, บันทึกความดี, และรายการของหาย <strong>ไม่สามารถกู้คืนได้</strong> หากไม่ได้สำรองข้อมูลไว้ก่อน
+                </div>
+                <p>ใช้ปุ่มนี้เมื่อ:</p>
+                <ul>
+                    <li>ต้องการเริ่มต้นการใช้งานใหม่</li>
+                    <li>ต้องการทดสอบระบบ</li>
+                    <li>ส่งต่อระบบให้ผู้ใช้คนอื่นโดยไม่ต้องการให้ดูข้อมูลเดิม</li>
+                </ul>
+            </div>
+
+            <div class="manual-section">
+                <h3>❓ คำถามที่พบบ่อย (FAQ)</h3>
+                <h4>Q: ทำไมข้อมูลหายหลังจากปิดเบราว์เซอร์?</h4>
+                <p>A: ตรวจสอบว่าไม่ได้ใช้โหมดไม่ระบุตัวตน (Incognito/Private) ซึ่งจะไม่เก็บข้อมูล LocalStorage และตรวจสอบว่าเบราว์เซอร์ไม่ได้ตั้งค่าให้ล้างข้อมูลเมื่อปิด</p>
+
+                <h4>Q: ใช้กับมือถือได้ไหม?</h4>
+                <p>A: ใช้ได้ทั้งคอมพิวเตอร์ แท็บเล็ต และมือถือ แต่ข้อมูลแยกกันในแต่ละอุปกรณ์ ต้องใช้ Backup/Import เพื่อย้ายข้อมูล</p>
+
+                <h4>Q: เพิ่มประเภทกิจกรรมเองได้ไหม?</h4>
+                <p>A: ในเวอร์ชันนี้ยังไม่รองรับ แต่สามารถใช้ "✨ ความดีอื่นๆ" และระบุรายละเอียดเพิ่มเติมแทนได้</p>
+
+                <h4>Q: หากมีปัญหาในการใช้งานต้องทำอย่างไร?</h4>
+                <p>A: ลองรีเฟรชหน้าเว็บ หากยังไม่หาย ให้สำรองข้อมูลออกมา แล้วลอง Import กลับเข้าไปใหม่</p>
+
+                <h4>Q: ไฟล์ Backup เก็บข้อมูลอะไรบ้าง?</h4>
+                <p>A: เก็บข้อมูลทั้งหมด 3 ส่วน คือ รายชื่อนักเรียน, บันทึกความดีทั้งหมด, และรายการของหาย/เงินหาย</p>
+            </div>
+
+            <div class="manual-section">
+                <h3>⌨️ เคล็ดลับการใช้งาน</h3>
+                <ul>
+                    <li>💡 ใช้ช่อง "ค้นหานักเรียน" พิมพ์ชั้นเรียน เช่น "ป.1/1" เพื่อกรองรายชื่อเฉพาะชั้นนั้น</li>
+                    <li>💡 เก็บไฟล์ Backup ไว้ใน Google Drive หรือ Cloud จะปลอดภัยกว่า</li>
+                    <li>💡 ส่งออก Excel เพื่อเก็บเป็นหลักฐาน หรือทำรายงานเพิ่มเติม</li>
+                    <li>💡 ก่อนล้างข้อมูลทุกครั้ง อย่าลืม Backup ก่อน</li>
+                    <li>💡 ตั้งชื่อไฟล์ Backup ให้มีวันที่ จะได้ทราบว่าเป็นข้อมูลล่าสุดเมื่อใด (ระบบทำให้อัตโนมัติแล้ว)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="copyright">Copyright © เพจครูพร้อมสอน. All Rights Reserved.</div>
+            <div class="footer-notice">สำหรับใช้ในโรงเรียนเท่านั้น • ไม่อนุญาตให้ดัดแปลง แก้ไข ทำซ้ำ เพื่อการพาณิชย์ หรือแอบอ้างเป็นผลงานของตนเอง</div>
+        </div>
+
+    </div>
+
+    <!-- Modal for prompts -->
+    <div id="customModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+        <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 10px; text-align: center;">
+            <p id="modalMessage" style="margin-bottom: 20px; font-size: 16px;"></p>
+            <input type="text" id="modalInput" style="width: calc(100% - 24px); padding: 12px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px;">
+            <button id="modalConfirmBtn" class="btn btn-primary">ตกลง</button>
+            <button id="modalCancelBtn" class="btn" style="background: #ccc;">ยกเลิก</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyGWnnvAhG-DFu8vZF5FVql82yRU065JWe-9z02Pb8pJzlVuD_ShjD59XFTR1oVwo7y/exec'; // URL Web App (.../exec) หรือ Cloudflare Worker — ใส่หลัง Deploy
+
+        // --- GLOBAL VARIABLES ---
+        let allStudents = [];
+        let goodDeedRecords = [];
+        let allItems = [];
+        let studentScores = {};
+        let appSettings = {};
+        let modalCallback = null;
+
+        // --- CONSTANTS ---
+        const activityPoints = { 'lost-found': 5, 'money-found': 0, 'trash-pickup': 3, 'help-teacher': 4, 'other-good': 5 };
+        const activityNames = { 'lost-found': 'ของหายได้คืน', 'money-found': 'เงินหายได้คืน', 'trash-pickup': 'เก็บขยะ', 'help-teacher': 'ช่วยงานครู', 'other-good': 'ความดีอื่นๆ' };
+
+        // --- SAFE UI HELPER ---
+        function safeSetText(id, text) {
+            const element = document.getElementById(id);
+            if (element) element.textContent = text;
+        }
+
+        // --- API / DATA LAYER (Google Sheets) ---
+        const CACHE_KEY = 'gd_cache_v2';
+        let DIRTY = false, pending = 0, syncQueue = Promise.resolve(), lastCacheStr = '', pollTimer = null;
+        const snap = { Students: {}, Records: {}, Items: {}, Settings: {} };
+        const TABLES = {
+            Students: { get: () => allStudents, key: r => r.id },
+            Records: { get: () => goodDeedRecords, key: r => r.timestamp },
+            Items: { get: () => allItems, key: r => r.timestamp }
+        };
+        const $id = (id) => document.getElementById(id);
+        const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+        async function api(action, data) {
+            if (!WEB_APP_URL) throw new Error('ยังไม่ได้ตั้งค่า WEB_APP_URL ใน index.html');
+            const res = await fetch(WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: action, data: data || {} })
+            });
+            const j = await res.json();
+            if (!j.ok) {
+                const err = new Error(j.message || j.error || 'เกิดข้อผิดพลาด');
+                err.code = j.error;
+                if (j.error === 'EXPIRED') showNotice(j.message || 'ใบอนุญาตหมดอายุ');
+                throw err;
+            }
+            return j.data;
+        }
+
+        function loading(on, text) {
+            $id('loadingText').textContent = text || 'กำลังโหลด...';
+            $id('loadingOverlay').style.display = on ? 'flex' : 'none';
+        }
+
+        function setStatus(kind) {
+            const box = $id('connectionStatus');
+            const map = {
+                ok: ['☁️', 'เชื่อมต่อ Google Sheets แล้ว', true],
+                saving: ['⏳', 'กำลังบันทึกขึ้น Google Sheets...', true],
+                err: ['⚠️', 'บันทึกไม่สำเร็จ', false],
+                offline: ['🔴', 'เชื่อมต่อระบบไม่ได้ (แสดงข้อมูลล่าสุดที่แคชไว้)', false]
+            };
+            const m = map[kind] || map.ok;
+            safeSetText('statusIcon', m[0]); safeSetText('statusText', m[1]);
+            box.className = 'connection-status ' + (m[2] ? 'status-online' : 'status-offline');
+        }
+
+        // --- Sync: เทียบข้อมูลในหน้าจอกับที่ซิงก์ล่าสุด แล้วส่งเฉพาะที่เปลี่ยน ---
+        function takeSnaps() {
+            Object.keys(TABLES).forEach(t => {
+                snap[t] = {};
+                TABLES[t].get().forEach(r => { snap[t][TABLES[t].key(r)] = JSON.stringify(r); });
+            });
+            snap.Settings = {};
+            Object.keys(appSettings).forEach(k => { snap.Settings[k] = String(appSettings[k] == null ? '' : appSettings[k]); });
+        }
+
+        function enqueue(fn) {
+            pending++; setStatus('saving');
+            syncQueue = syncQueue.then(fn).then(() => {
+                pending--; DIRTY = true;
+                if (!pending) setStatus('ok');
+            }).catch(async (e) => {
+                pending--;
+                setStatus('err');
+                showAlert('บันทึกขึ้นระบบไม่สำเร็จ: ' + e.message, 'danger', 8000);
+                if (e.code !== 'EXPIRED') { lastCacheStr = ''; await reloadFromServer(true, true); }
+            });
+        }
+
+        function syncTable(t) {
+            if (t === 'Students') allStudents.forEach(s => { if (!s.id) s.id = uid(); });
+            const cur = {};
+            TABLES[t].get().forEach(r => { cur[TABLES[t].key(r)] = r; });
+            const up = [], del = [];
+            Object.keys(cur).forEach(k => { if (snap[t][k] !== JSON.stringify(cur[k])) up.push(JSON.parse(JSON.stringify(cur[k]))); });
+            Object.keys(snap[t]).forEach(k => { if (!(k in cur)) del.push(k); });
+            if (!up.length && !del.length) return;
+            up.forEach(r => { snap[t][TABLES[t].key(r)] = JSON.stringify(r); });
+            del.forEach(k => { delete snap[t][k]; });
+            enqueue(async () => {
+                if (del.length) await api('remove', { table: t, ids: del });
+                if (up.length) await api('upsert', { table: t, rows: up });
+            });
+        }
+
+        function syncSettings() {
+            const rows = [];
+            const keys = new Set(Object.keys(appSettings).concat(Object.keys(snap.Settings)));
+            keys.forEach(k => {
+                const v = appSettings[k] == null ? '' : String(appSettings[k]);
+                if ((snap.Settings[k] || '') !== v) rows.push({ key: k, value: v });
+            });
+            if (!rows.length) return;
+            rows.forEach(r => { snap.Settings[r.key] = r.value; });
+            enqueue(async () => {
+                for (const r of rows) { // รูป base64 → อัปโหลดขึ้น Drive แล้วเก็บเป็น URL
+                    if (r.value.indexOf('data:image') === 0) {
+                        const up = await api('uploadImage', { base64: r.value, name: r.key });
+                        r.value = up.url; appSettings[r.key] = up.url; snap.Settings[r.key] = up.url;
+                    }
+                }
+                await api('upsert', { table: 'Settings', rows: rows });
+            });
+        }
+
+        function saveStudents() { syncTable('Students'); }
+        function saveRecords() { syncTable('Records'); }
+        function saveItems() { syncTable('Items'); }
+        function saveSettings() { syncSettings(); return true; }
+        function saveAll() { saveStudents(); saveRecords(); saveItems(); saveSettings(); }
+
+        function applyData(d, early) {
+            allStudents = d.Students || [];
+            goodDeedRecords = d.Records || [];
+            allItems = d.Items || [];
+            appSettings = d.Settings || {};
+            takeSnaps();
+            recalculateScores();
+            if (!early) { loadSettingsToForm(); updateDisplay(); }
+        }
+
+        function loadFromStorage() { // แสดงข้อมูลแคชทันที (stale-while-revalidate)
+            try {
+                const c = localStorage.getItem(CACHE_KEY);
+                if (c) { lastCacheStr = c; applyData(JSON.parse(c), true); }
+            } catch (e) { console.error(e); }
+        }
+
+        async function reloadFromServer(force, quiet) {
+            try {
+                const d = await api('getInitialData', { noCache: DIRTY || !!force });
+                DIRTY = false;
+                const s = JSON.stringify({ Students: d.Students, Records: d.Records, Items: d.Items, Settings: d.Settings });
+                if (s !== lastCacheStr) {
+                    lastCacheStr = s;
+                    applyData(JSON.parse(s));
+                    try { localStorage.setItem(CACHE_KEY, s); } catch (e) { }
+                }
+                setStatus('ok');
+            } catch (e) {
+                if (e.code === 'EXPIRED') return;
+                setStatus('offline');
+                if (!quiet) showAlert('เชื่อมต่อระบบไม่ได้: ' + e.message, 'warning', 6000);
+            }
+        }
+
+        // --- Start / Notice ---
+        function showNotice(msg) {
+            $id('loginOverlay').style.display = 'flex';
+            safeSetText('loginMsg', msg || '');
+        }
+        async function boot() {
+            if (!WEB_APP_URL) { showNotice('ยังไม่ได้ตั้งค่า WEB_APP_URL ใน index.html'); return; }
+            await reloadFromServer(true);
+            pollTimer = setInterval(() => {
+                const mid = $id('studentSelect') && $id('studentSelect').value;
+                if (!pending && !mid && document.visibilityState === 'visible') reloadFromServer(false, true);
+            }, 60000);
+        }
+
+        function recalculateScores() {
+            studentScores = {};
+            goodDeedRecords.forEach(record => {
+                studentScores[record.studentName] = (studentScores[record.studentName] || 0) + (parseInt(record.points) || 0);
+            });
+        }
+
+        // --- BACKUP / IMPORT ---
+        function backupData() {
+            const backup = {
+                meta: {
+                    appName: 'ระบบบันทึกความดี',
+                    version: '1.1',
+                    exportDate: new Date().toISOString()
+                },
+                settings: appSettings,
+                students: allStudents,
+                records: goodDeedRecords,
+                items: allItems
+            };
+            const dataStr = JSON.stringify(backup, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStr = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = `backup-good-deeds-${dateStr}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showAlert('สำรองข้อมูลสำเร็จ! ดาวน์โหลดไฟล์เรียบร้อย', 'success');
+        }
+
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const confirmed = await customConfirm('การนำเข้าข้อมูลจะทับข้อมูลเดิมทั้งหมด คุณต้องการดำเนินการต่อหรือไม่?\n\n(แนะนำให้สำรองข้อมูลปัจจุบันก่อน)');
+            if (!confirmed) {
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.students || !data.records || !data.items) {
+                        throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+                    }
+                    allStudents = data.students || [];
+                    goodDeedRecords = data.records || [];
+                    allItems = data.items || [];
+                    appSettings = data.settings || {};
+                    saveAll();
+                    recalculateScores();
+                    loadSettingsToForm();
+                    updateDisplay();
+                    showAlert(`นำเข้าข้อมูลสำเร็จ! นักเรียน ${allStudents.length} คน, บันทึก ${goodDeedRecords.length} รายการ`, 'success', 6000);
+                } catch (error) {
+                    showAlert('เกิดข้อผิดพลาดในการนำเข้า: ' + error.message, 'danger', 6000);
+                }
+                event.target.value = '';
+            };
+            reader.onerror = function() {
+                showAlert('ไม่สามารถอ่านไฟล์ได้', 'danger');
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        async function clearAllData() {
+            const confirmed = await customConfirm('⚠️ คำเตือน! คุณต้องการล้างข้อมูลทั้งหมดใช่หรือไม่?\n\nรายชื่อนักเรียน, บันทึกความดี, และรายการของหายทั้งหมดจะถูกลบ\nและไม่สามารถกู้คืนได้ (ควรสำรองข้อมูลก่อน)');
+            if (!confirmed) return;
+
+            const confirmed2 = await customConfirm('ยืนยันอีกครั้ง: คุณแน่ใจหรือไม่ว่าต้องการล้างข้อมูลทั้งหมด?');
+            if (!confirmed2) return;
+
+            loading(true, 'กำลังสำรองอัตโนมัติและล้างข้อมูล...');
+            try {
+                await api('clearAll');
+                allStudents = []; goodDeedRecords = []; allItems = []; studentScores = {};
+                takeSnaps(); updateDisplay();
+                showAlert('ล้างข้อมูลเรียบร้อย (ตั้งค่าและบัญชียังอยู่ · มีไฟล์สำรองใน Drive โฟลเดอร์ GoodDeeds_Backups)', 'success', 7000);
+            } catch (err) { showAlert('ล้างข้อมูลไม่สำเร็จ: ' + err.message, 'danger', 6000); }
+            finally { loading(false); }
+        }
+
+        // --- SETTINGS / IMAGE COMPRESSION ---
+        function compressImage(file, maxWidth, maxHeight, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width;
+                        let h = img.height;
+                        if (w > maxWidth || h > maxHeight) {
+                            const ratio = Math.min(maxWidth / w, maxHeight / h);
+                            w = Math.round(w * ratio);
+                            h = Math.round(h * ratio);
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, w, h);
+                        ctx.drawImage(img, 0, 0, w, h);
+                        // ใช้ JPEG สำหรับโลโก้ขนาดใหญ่, PNG สำหรับลายเซ็น (รักษาความโปร่งใส)
+                        const outputType = file.type === 'image/png' && file.size < 200000 ? 'image/png' : 'image/jpeg';
+                        const base64 = canvas.toDataURL(outputType, quality);
+                        resolve(base64);
+                    };
+                    img.onerror = () => reject(new Error('ไม่สามารถโหลดรูปภาพได้'));
+                    img.src = e.target.result;
+                };
+                reader.onerror = () => reject(new Error('อ่านไฟล์ไม่สำเร็จ'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function handleImageUpload(file, type) {
+            if (!file) return;
+            if (!file.type.startsWith('image/')) {
+                showAlert('กรุณาเลือกไฟล์รูปภาพเท่านั้น', 'warning');
+                return;
+            }
+            try {
+                showAlert('กำลังประมวลผลรูปภาพ...', 'info', 2000);
+                let base64;
+                if (type === 'logo') {
+                    base64 = await compressImage(file, 300, 300, 0.85);
+                    appSettings.logo = base64;
+                    document.getElementById('logoPreview').src = base64;
+                    document.getElementById('logoPreview').style.display = 'block';
+                    document.getElementById('logoEmpty').style.display = 'none';
+                    document.getElementById('removeLogoBtn').style.display = 'inline-block';
+                } else if (type === 'directorSig') {
+                    base64 = await compressImage(file, 400, 200, 0.9);
+                    appSettings.directorSignature = base64;
+                    document.getElementById('directorSigPreview').src = base64;
+                    document.getElementById('directorSigPreview').style.display = 'block';
+                    document.getElementById('directorSigEmpty').style.display = 'none';
+                    document.getElementById('removeDirectorSigBtn').style.display = 'inline-block';
+                } else if (type === 'deputySig') {
+                    base64 = await compressImage(file, 400, 200, 0.9);
+                    appSettings.deputySignature = base64;
+                    document.getElementById('deputySigPreview').src = base64;
+                    document.getElementById('deputySigPreview').style.display = 'block';
+                    document.getElementById('deputySigEmpty').style.display = 'none';
+                    document.getElementById('removeDeputySigBtn').style.display = 'inline-block';
+                }
+                if (saveSettings()) {
+                    showAlert('อัปโหลดรูปสำเร็จ!', 'success');
+                }
+            } catch (error) {
+                showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger');
+            }
+        }
+
+        function removeLogo() {
+            delete appSettings.logo;
+            document.getElementById('logoPreview').style.display = 'none';
+            document.getElementById('logoPreview').src = '';
+            document.getElementById('logoEmpty').style.display = 'block';
+            document.getElementById('removeLogoBtn').style.display = 'none';
+            document.getElementById('logoInput').value = '';
+            saveSettings();
+            showAlert('ลบโลโก้แล้ว', 'info');
+        }
+
+        function removeDirectorSig() {
+            delete appSettings.directorSignature;
+            document.getElementById('directorSigPreview').style.display = 'none';
+            document.getElementById('directorSigPreview').src = '';
+            document.getElementById('directorSigEmpty').style.display = 'block';
+            document.getElementById('removeDirectorSigBtn').style.display = 'none';
+            document.getElementById('directorSigInput').value = '';
+            saveSettings();
+            showAlert('ลบลายเซ็นแล้ว', 'info');
+        }
+
+        function removeDeputySig() {
+            delete appSettings.deputySignature;
+            document.getElementById('deputySigPreview').style.display = 'none';
+            document.getElementById('deputySigPreview').src = '';
+            document.getElementById('deputySigEmpty').style.display = 'block';
+            document.getElementById('removeDeputySigBtn').style.display = 'none';
+            document.getElementById('deputySigInput').value = '';
+            saveSettings();
+            showAlert('ลบลายเซ็นแล้ว', 'info');
+        }
+
+        function loadSettingsToForm() {
+            document.getElementById('schoolName').value = appSettings.schoolName || '';
+            document.getElementById('schoolYear').value = appSettings.schoolYear || '';
+            document.getElementById('schoolAddress').value = appSettings.schoolAddress || '';
+            document.getElementById('directorName').value = appSettings.directorName || '';
+            document.getElementById('directorPosition').value = appSettings.directorPosition || 'ผู้อำนวยการโรงเรียน';
+            document.getElementById('deputyName').value = appSettings.deputyName || '';
+            document.getElementById('deputyPosition').value = appSettings.deputyPosition || 'รองผู้อำนวยการโรงเรียน';
+
+            // Logo
+            if (appSettings.logo) {
+                document.getElementById('logoPreview').src = appSettings.logo;
+                document.getElementById('logoPreview').style.display = 'block';
+                document.getElementById('logoEmpty').style.display = 'none';
+                document.getElementById('removeLogoBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('logoPreview').style.display = 'none';
+                document.getElementById('logoEmpty').style.display = 'block';
+                document.getElementById('removeLogoBtn').style.display = 'none';
+            }
+
+            // Director signature
+            if (appSettings.directorSignature) {
+                document.getElementById('directorSigPreview').src = appSettings.directorSignature;
+                document.getElementById('directorSigPreview').style.display = 'block';
+                document.getElementById('directorSigEmpty').style.display = 'none';
+                document.getElementById('removeDirectorSigBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('directorSigPreview').style.display = 'none';
+                document.getElementById('directorSigEmpty').style.display = 'block';
+                document.getElementById('removeDirectorSigBtn').style.display = 'none';
+            }
+
+            // Deputy signature
+            if (appSettings.deputySignature) {
+                document.getElementById('deputySigPreview').src = appSettings.deputySignature;
+                document.getElementById('deputySigPreview').style.display = 'block';
+                document.getElementById('deputySigEmpty').style.display = 'none';
+                document.getElementById('removeDeputySigBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('deputySigPreview').style.display = 'none';
+                document.getElementById('deputySigEmpty').style.display = 'block';
+                document.getElementById('removeDeputySigBtn').style.display = 'none';
+            }
+        }
+
+        function setupSettingsForm() {
+            document.getElementById('settingsForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                appSettings.schoolName = document.getElementById('schoolName').value.trim();
+                appSettings.schoolYear = document.getElementById('schoolYear').value.trim();
+                appSettings.schoolAddress = document.getElementById('schoolAddress').value.trim();
+                appSettings.directorName = document.getElementById('directorName').value.trim();
+                appSettings.directorPosition = document.getElementById('directorPosition').value.trim();
+                appSettings.deputyName = document.getElementById('deputyName').value.trim();
+                appSettings.deputyPosition = document.getElementById('deputyPosition').value.trim();
+                if (saveSettings()) {
+                    showAlert('บันทึกการตั้งค่าสำเร็จ!', 'success');
+                }
+            });
+
+            document.getElementById('logoInput').addEventListener('change', (e) => {
+                handleImageUpload(e.target.files[0], 'logo');
+            });
+            document.getElementById('directorSigInput').addEventListener('change', (e) => {
+                handleImageUpload(e.target.files[0], 'directorSig');
+            });
+            document.getElementById('deputySigInput').addEventListener('change', (e) => {
+                handleImageUpload(e.target.files[0], 'deputySig');
+            });
+        }
+
+        // --- STUDENT MANAGEMENT ---
+        function setupStudentManagement() {
+            document.getElementById('addStudentForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const studentClass = document.getElementById('studentClass').value.trim();
+                const studentNumber = document.getElementById('studentNumber').value;
+                const studentPrefix = document.getElementById('studentPrefix').value.trim();
+                const studentFirstName = document.getElementById('studentFirstName').value.trim();
+                const studentLastName = document.getElementById('studentLastName').value.trim();
+
+                if (!studentClass || !studentNumber || !studentPrefix || !studentFirstName || !studentLastName) {
+                    showAlert('กรุณากรอกข้อมูลนักเรียนให้ครบถ้วน', 'warning');
+                    return;
+                }
+
+                const fullName = `${studentPrefix}${studentFirstName} ${studentLastName}`.trim();
+                // Check duplicate
+                if (allStudents.some(s => s.fullName === fullName && s.class === studentClass)) {
+                    showAlert('มีนักเรียนชื่อนี้ในชั้นเดียวกันอยู่แล้ว', 'warning');
+                    return;
+                }
+
+                allStudents.push({
+                    class: studentClass,
+                    number: parseInt(studentNumber) || 0,
+                    prefix: studentPrefix,
+                    firstName: studentFirstName,
+                    lastName: studentLastName,
+                    fullName: fullName
+                });
+                saveStudents();
+                showAlert('เพิ่มนักเรียนสำเร็จ!', 'success');
+                e.target.reset();
+                updateDisplay();
+            });
+
+            document.getElementById('studentListBody').addEventListener('click', async (e) => {
+                if (e.target && e.target.classList.contains('delete-btn')) {
+                    const fullName = e.target.dataset.name;
+                    const studentClass = e.target.dataset.class;
+                    const confirmed = await customConfirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ "${fullName}" (${studentClass})?`);
+                    if (!confirmed) return;
+                    allStudents = allStudents.filter(s => !(s.fullName === fullName && s.class === studentClass));
+                    saveStudents();
+                    showAlert(`ลบ ${fullName} สำเร็จ!`, 'success');
+                    updateDisplay();
+                }
+            });
+
+            document.getElementById('importExcelBtn').addEventListener('click', handleExcelImport);
+        }
+
+        function handleExcelImport() {
+            const fileInput = document.getElementById('excelFileInput');
+            const file = fileInput.files[0];
+            if (!file) { showAlert('กรุณาเลือกไฟล์ Excel ก่อน', 'warning'); return; }
+            showAlert('กำลังอ่านไฟล์ Excel...', 'info');
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    const studentsToImport = jsonData.filter(row => row.length >= 5 && row.slice(0, 5).some(cell => cell !== null && String(cell).trim() !== ''));
+                    if (studentsToImport.length === 0) { showAlert('ไม่พบข้อมูลที่ถูกต้องในไฟล์ Excel', 'warning'); return; }
+
+                    let added = 0;
+                    let skipped = 0;
+                    studentsToImport.forEach(row => {
+                        const studentClass = String(row[0] || '').trim();
+                        const studentNumber = parseInt(row[1]) || 0;
+                        const studentPrefix = String(row[2] || '').trim();
+                        const studentFirstName = String(row[3] || '').trim();
+                        const studentLastName = String(row[4] || '').trim();
+                        if (!studentClass || !studentPrefix || !studentFirstName || !studentLastName) {
+                            skipped++;
+                            return;
+                        }
+                        const fullName = `${studentPrefix}${studentFirstName} ${studentLastName}`.trim();
+                        if (allStudents.some(s => s.fullName === fullName && s.class === studentClass)) {
+                            skipped++;
+                            return;
+                        }
+                        allStudents.push({
+                            class: studentClass,
+                            number: studentNumber,
+                            prefix: studentPrefix,
+                            firstName: studentFirstName,
+                            lastName: studentLastName,
+                            fullName: fullName
+                        });
+                        added++;
+                    });
+                    saveStudents();
+                    showAlert(`นำเข้าสำเร็จ ${added} คน${skipped > 0 ? ` (ข้าม ${skipped} รายการที่ซ้ำหรือไม่สมบูรณ์)` : ''}`, 'success', 6000);
+                    fileInput.value = '';
+                    updateDisplay();
+                } catch (error) {
+                    showAlert('เกิดข้อผิดพลาดในการประมวลผลไฟล์: ' + error.message, 'danger');
+                }
+            };
+            reader.onerror = () => { showAlert('ไม่สามารถอ่านไฟล์ได้', 'danger'); };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function renderStudentManagementList() {
+            const tbody = document.getElementById('studentListBody');
+            if (!tbody) return;
+            if (allStudents.length === 0) { tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 30px;">ยังไม่มีข้อมูลนักเรียน</td></tr>`; return; }
+            const sorted = [...allStudents].sort((a, b) => (a.class || '').localeCompare(b.class || '', 'th') || (a.number || 0) - (b.number || 0));
+            tbody.innerHTML = sorted.map(s => `<tr><td>${escapeHtml(s.class)}</td><td>${s.number}</td><td>${escapeHtml(s.fullName)}</td><td><button class="btn btn-danger btn-sm delete-btn" data-name="${escapeHtml(s.fullName)}" data-class="${escapeHtml(s.class)}">ลบ</button></td></tr>`).join('');
+        }
+
+        // --- UI HELPERS ---
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            return String(text).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+        }
+
+        function showAlert(message, type = 'info', duration = 4000) {
+            const container = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            container.appendChild(alertDiv);
+            setTimeout(() => {
+                alertDiv.classList.add('hide');
+                alertDiv.addEventListener('transitionend', () => alertDiv.remove());
+            }, duration);
+        }
+
+        function populateStudentSelect(students) {
+            const studentSelect = document.getElementById('studentSelect');
+            if (!studentSelect) return;
+            const currentVal = studentSelect.value;
+            studentSelect.innerHTML = '<option value="">-- เลือกนักเรียน --</option>';
+            const sorted = [...students].sort((a, b) => (a.class || '').localeCompare(b.class || '', 'th') || (a.number || 0) - (b.number || 0));
+            let currentClass = '';
+            let optgroup = null;
+            sorted.forEach(s => {
+                if (s.class !== currentClass) {
+                    if (optgroup) studentSelect.appendChild(optgroup);
+                    optgroup = document.createElement('optgroup');
+                    optgroup.label = `ชั้น ${s.class}`;
+                    currentClass = s.class;
+                }
+                const option = document.createElement('option');
+                option.value = s.fullName;
+                option.textContent = `${s.number}. ${s.fullName}`;
+                if (optgroup) optgroup.appendChild(option);
+            });
+            if (optgroup) studentSelect.appendChild(optgroup);
+            studentSelect.value = currentVal;
+        }
+
+        function setupGoodDeedForm() {
+            const form = document.getElementById('goodDeedForm');
+            if (!form) return;
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const studentName = document.getElementById('studentSelect').value;
+                const activeBtn = document.querySelector('.activity-btn.active');
+                if (!studentName || !activeBtn) {
+                    showAlert('กรุณากรอกข้อมูลให้ครบถ้วน (เลือกนักเรียนและประเภทกิจกรรม)', 'warning');
+                    return;
+                }
+
+                const submitBtn = document.getElementById('submitBtn');
+                const btnText = submitBtn.querySelector('.btn-text');
+                const editingTimestamp = document.getElementById('editingTimestamp').value;
+                const activityType = activeBtn.dataset.activity;
+
+                const itemDescription = document.getElementById('itemDescription').value.trim();
+                const moneyAmount = document.getElementById('moneyAmount').value;
+
+                if (activityType === 'lost-found' && !itemDescription) {
+                    showAlert('กรุณากรอก "รายละเอียดของที่พบ"', 'warning');
+                    return;
+                }
+                if (activityType === 'money-found' && (!moneyAmount || parseFloat(moneyAmount) <= 0)) {
+                    showAlert('กรุณากรอก "จำนวนเงิน" ให้ถูกต้อง', 'warning');
+                    return;
+                }
+
+                const points = parseInt(document.getElementById('pointsInput').value);
+                const timestamp = editingTimestamp || new Date().toISOString();
+                const recordData = {
+                    date: document.getElementById('dateInput').value,
+                    studentName: studentName,
+                    activityName: activityNames[activityType],
+                    description: document.getElementById('description').value,
+                    points: points,
+                    timestamp: timestamp
+                };
+
+                try {
+                    if (editingTimestamp) {
+                        // Edit existing record
+                        const idx = goodDeedRecords.findIndex(r => r.timestamp === editingTimestamp);
+                        if (idx >= 0) {
+                            goodDeedRecords[idx] = recordData;
+                        }
+                        // Also update related item if exists and editable
+                        const itemIdx = allItems.findIndex(item => item.timestamp === editingTimestamp);
+                        if (itemIdx >= 0 && allItems[itemIdx].status === 'คงเหลือ') {
+                            if (activityType === 'lost-found') {
+                                allItems[itemIdx].type = 'ของ';
+                                allItems[itemIdx].description = itemDescription;
+                                allItems[itemIdx].dateFound = recordData.date;
+                                allItems[itemIdx].foundBy = studentName;
+                            } else if (activityType === 'money-found') {
+                                allItems[itemIdx].type = 'เงิน';
+                                allItems[itemIdx].description = moneyAmount;
+                                allItems[itemIdx].dateFound = recordData.date;
+                                allItems[itemIdx].foundBy = studentName;
+                            }
+                        }
+                    } else {
+                        // New record
+                        goodDeedRecords.push(recordData);
+                        if (activityType === 'lost-found' || activityType === 'money-found') {
+                            allItems.push({
+                                timestamp: timestamp,
+                                type: activityType === 'money-found' ? 'เงิน' : 'ของ',
+                                description: activityType === 'money-found' ? moneyAmount : itemDescription,
+                                dateFound: recordData.date,
+                                foundBy: studentName,
+                                status: 'คงเหลือ',
+                                claimedBy: '',
+                                dateClaimed: ''
+                            });
+                        }
+                    }
+                    saveRecords();
+                    saveItems();
+                    recalculateScores();
+                    showAlert(editingTimestamp ? 'อัปเดตข้อมูลสำเร็จ!' : 'บันทึกข้อมูลสำเร็จ!', 'success');
+                    cancelEdit();
+                    updateDisplay();
+                } catch (error) {
+                    showAlert('เกิดข้อผิดพลาด: ' + error.message, 'danger');
+                }
+            });
+        }
+
+        async function handleRecordActions(e) {
+            const target = e.target;
+            const timestamp = target.dataset.timestamp;
+            if (!timestamp) return;
+
+            if (target.classList.contains('edit-btn')) {
+                const recordToEdit = goodDeedRecords.find(r => r.timestamp == timestamp);
+                if (recordToEdit) {
+                    document.getElementById('editingTimestamp').value = recordToEdit.timestamp;
+                    document.getElementById('dateInput').value = recordToEdit.date;
+                    document.getElementById('studentSelect').value = recordToEdit.studentName;
+                    document.getElementById('description').value = recordToEdit.description;
+                    document.getElementById('pointsInput').value = recordToEdit.points;
+
+                    document.querySelectorAll('.activity-btn').forEach(btn => {
+                        const activityKey = Object.keys(activityNames).find(key => activityNames[key] === recordToEdit.activityName);
+                        btn.classList.toggle('active', btn.dataset.activity === activityKey);
+                        if (btn.classList.contains('active')) {
+                            const relatedItem = allItems.find(item => item.timestamp === recordToEdit.timestamp);
+                            if (btn.dataset.activity === 'lost-found') {
+                                document.getElementById('itemDescriptionGroup').style.display = 'block';
+                                document.getElementById('itemDescription').value = relatedItem ? relatedItem.description : '';
+                            } else if (btn.dataset.activity === 'money-found') {
+                                document.getElementById('moneyAmountGroup').style.display = 'block';
+                                document.getElementById('moneyAmount').value = relatedItem ? relatedItem.description : '';
+                            }
+                        }
+                    });
+
+                    document.getElementById('form-title').textContent = '✏️ แก้ไขบันทึกความดี';
+                    document.querySelector('#submitBtn .btn-text').textContent = '💾 อัปเดตข้อมูล';
+                    document.getElementById('cancelEditBtn').style.display = 'block';
+                    // Switch to record tab if not already there
+                    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    document.getElementById('record-tab').classList.add('active');
+                    document.querySelector('.nav-tab').classList.add('active');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            } else if (target.classList.contains('delete-btn')) {
+                const confirmed = await customConfirm(`คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?\n(การกระทำนี้จะลบรายการของที่เกี่ยวข้องด้วย)`);
+                if (confirmed) deleteRecord(timestamp);
+            }
+        }
+
+        function deleteRecord(timestamp) {
+            goodDeedRecords = goodDeedRecords.filter(r => r.timestamp != timestamp);
+            allItems = allItems.filter(item => item.timestamp != timestamp);
+            saveRecords();
+            saveItems();
+            recalculateScores();
+            showAlert('ลบข้อมูลสำเร็จ!', 'success');
+            updateDisplay();
+        }
+
+        function cancelEdit() {
+            document.getElementById('goodDeedForm').reset();
+            document.getElementById('editingTimestamp').value = '';
+            document.getElementById('form-title').textContent = '📝 บันทึกความดี';
+            document.querySelector('#submitBtn .btn-text').textContent = '💾 บันทึกความดี';
+            document.getElementById('cancelEditBtn').style.display = 'none';
+            document.querySelectorAll('.activity-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('itemDescriptionGroup').style.display = 'none';
+            document.getElementById('moneyAmountGroup').style.display = 'none';
+            setCurrentDate();
+        }
+
+        function updateDisplay() {
+            updateStats();
+            updateRecordsTable();
+            updateTopStudents();
+            populateStudentSelect(allStudents);
+            renderStudentManagementList();
+            renderItemsTables();
+        }
+
+        function updateStats() {
+            safeSetText('totalRecords', goodDeedRecords.length);
+            safeSetText('totalPoints', Object.values(studentScores).reduce((s, c) => s + c, 0).toLocaleString());
+            safeSetText('totalStudents', allStudents.length);
+            const today = new Date().toISOString().split('T')[0];
+            safeSetText('todayRecords', goodDeedRecords.filter(r => r.date === today).length);
+        }
+
+        function updateRecordsTable() {
+            const tbody = document.getElementById('recordsTableBody');
+            if (!tbody) return;
+            if (goodDeedRecords.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 30px;">ยังไม่มีข้อมูล</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = [...goodDeedRecords].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 100)
+                .map(r => {
+                    const isItemRelated = r.activityName === 'ของหายได้คืน' || r.activityName === 'เงินหายได้คืน';
+                    const itemStatus = isItemRelated ? allItems.find(item => item.timestamp === r.timestamp)?.status : null;
+                    const canEdit = !isItemRelated || itemStatus === 'คงเหลือ';
+                    let dateDisplay = r.date;
+                    try {
+                        dateDisplay = new Date(r.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+                    } catch (e) {}
+                    return `<tr>
+                        <td>${escapeHtml(dateDisplay)}</td>
+                        <td>${escapeHtml(r.studentName)}</td>
+                        <td><span class="activity-tag">${escapeHtml(r.activityName)}</span> ${r.description ? `<br><small style="color: #555;">${escapeHtml(r.description)}</small>` : ''}</td>
+                        <td><span class="score-badge">${r.points}</span></td>
+                        <td>
+                            ${canEdit ? `<button class="btn btn-warning btn-sm edit-btn" data-timestamp="${escapeHtml(r.timestamp)}">แก้ไข</button>` : ''}
+                            <button class="btn btn-danger btn-sm delete-btn" data-timestamp="${escapeHtml(r.timestamp)}">ลบ</button>
+                        </td>
+                    </tr>`;
+                }).join('');
+        }
+
+        function updateTopStudents() {
+            const div = document.getElementById('topStudents');
+            if (!div) return;
+            if (Object.keys(studentScores).length === 0) {
+                div.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 30px;">ยังไม่มีข้อมูลคะแนน</div>`;
+                return;
+            }
+            const sorted = Object.entries(studentScores).sort((a, b) => b[1] - a[1]).slice(0, 10);
+            div.innerHTML = sorted.map(([name, score], i) => `<div class="student-card"><div class="student-rank">${i + 1}</div><div class="student-name">${escapeHtml(name)}</div><div class="student-score">${score.toLocaleString()} คะแนน</div></div>`).join('');
+        }
+
+        function showTab(event, tabId) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+            if (tabId !== 'record-tab') cancelEdit();
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('studentSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    const filtered = !searchTerm ? allStudents : allStudents.filter(s => `${s.class} ${s.fullName}`.toLowerCase().includes(searchTerm));
+                    populateStudentSelect(filtered);
+                });
+            }
+        }
+
+        function setCurrentDate() {
+            const dateInput = document.getElementById('dateInput');
+            if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+        }
+
+        function setupActivityButtons() {
+            const activityBtns = document.querySelectorAll('.activity-btn');
+            const moneyGroup = document.getElementById('moneyAmountGroup');
+            const itemGroup = document.getElementById('itemDescriptionGroup');
+            const pointsInput = document.getElementById('pointsInput');
+            const moneyInput = document.getElementById('moneyAmount');
+            activityBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    activityBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    const activity = this.dataset.activity;
+                    moneyGroup.style.display = activity === 'money-found' ? 'block' : 'none';
+                    itemGroup.style.display = activity === 'lost-found' ? 'block' : 'none';
+                    if (activity === 'money-found') {
+                        pointsInput.value = 1;
+                        moneyInput.value = '';
+                    } else {
+                        pointsInput.value = activityPoints[activity] || 5;
+                    }
+                });
+            });
+            if (moneyInput) {
+                moneyInput.addEventListener('input', function() {
+                    if (document.querySelector('.activity-btn[data-activity="money-found"].active')) {
+                        if (pointsInput) pointsInput.value = Math.max(1, Math.floor(parseFloat(this.value) || 0));
+                    }
+                });
+            }
+        }
+
+        function renderItemsTables() {
+            const remainingBody = document.getElementById('remainingItemsBody');
+            const claimedBody = document.getElementById('claimedItemsBody');
+            if (!remainingBody || !claimedBody) return;
+
+            const remainingItems = allItems.filter(item => item.status === 'คงเหลือ').sort((a, b) => new Date(b.dateFound) - new Date(a.dateFound));
+            const claimedItems = allItems.filter(item => item.status === 'รับคืนแล้ว').sort((a, b) => new Date(b.dateClaimed) - new Date(a.dateClaimed));
+
+            remainingBody.innerHTML = remainingItems.length > 0 ? remainingItems.map(item => {
+                let dateDisplay = item.dateFound;
+                try { dateDisplay = new Date(item.dateFound).toLocaleDateString('th-TH'); } catch (e) {}
+                return `
+                <tr>
+                    <td>${escapeHtml(dateDisplay)}</td>
+                    <td>${item.type === 'เงิน' ? `${parseFloat(item.description).toLocaleString()} บาท` : escapeHtml(item.description)}</td>
+                    <td>${escapeHtml(item.foundBy)}</td>
+                    <td><button class="btn btn-success btn-sm claim-btn" data-timestamp="${escapeHtml(item.timestamp)}">รับคืน</button></td>
+                </tr>
+            `;}).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px;">ไม่มีของคงเหลือ</td></tr>`;
+
+            claimedBody.innerHTML = claimedItems.length > 0 ? claimedItems.map(item => {
+                let dateDisplay = item.dateClaimed;
+                try { dateDisplay = new Date(item.dateClaimed).toLocaleDateString('th-TH'); } catch (e) {}
+                return `
+                <tr>
+                    <td>${escapeHtml(dateDisplay)}</td>
+                    <td>${item.type === 'เงิน' ? `${parseFloat(item.description).toLocaleString()} บาท` : escapeHtml(item.description)}</td>
+                    <td>${escapeHtml(item.claimedBy)}</td>
+                    <td>${escapeHtml(item.foundBy)}</td>
+                </tr>
+            `;}).join('') : `<tr><td colspan="4" style="text-align:center; padding: 20px;">ยังไม่มีการรับคืน</td></tr>`;
+        }
+
+        async function handleItemClaim(e) {
+            if (e.target && e.target.classList.contains('claim-btn')) {
+                const timestamp = e.target.dataset.timestamp;
+                const claimedBy = await customPrompt("กรุณาใส่ชื่อ-นามสกุล ของนักเรียนที่มารับของคืน:");
+                if (claimedBy && claimedBy.trim() !== '') {
+                    const idx = allItems.findIndex(item => item.timestamp === timestamp);
+                    if (idx >= 0) {
+                        allItems[idx].status = 'รับคืนแล้ว';
+                        allItems[idx].claimedBy = claimedBy.trim();
+                        allItems[idx].dateClaimed = new Date().toISOString().split('T')[0];
+                        saveItems();
+                        showAlert('บันทึกการรับคืนสำเร็จ!', 'success');
+                        updateDisplay();
+                    }
+                }
+            }
+        }
+
+        function exportToExcel() {
+            if (goodDeedRecords.length === 0 && allItems.length === 0) {
+                showAlert('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
+                return;
+            }
+            const wb = XLSX.utils.book_new();
+
+            const recordsWS = XLSX.utils.json_to_sheet(goodDeedRecords.map(r => ({
+                'วันที่': r.date,
+                'ชื่อ-นามสกุล': r.studentName,
+                'กิจกรรม': r.activityName,
+                'รายละเอียด': r.description,
+                'คะแนน': r.points,
+                'Timestamp': r.timestamp
+            })));
+            XLSX.utils.book_append_sheet(wb, recordsWS, 'ประวัติความดี');
+
+            const itemsWS = XLSX.utils.json_to_sheet(allItems.map(i => ({
+                'Timestamp': i.timestamp,
+                'ประเภท': i.type,
+                'รายละเอียด/จำนวนเงิน': i.description,
+                'วันที่พบ': i.dateFound,
+                'ผู้พบ': i.foundBy,
+                'สถานะ': i.status,
+                'ผู้รับคืน': i.claimedBy,
+                'วันที่รับคืน': i.dateClaimed
+            })));
+            XLSX.utils.book_append_sheet(wb, itemsWS, 'รายการของทั้งหมด');
+
+            const scoresWS = XLSX.utils.json_to_sheet(Object.entries(studentScores).sort((a, b) => b[1] - a[1]).map(([n, s], i) => ({
+                'อันดับ': i + 1,
+                'ชื่อ-นามสกุล': n,
+                'คะแนนรวม': s
+            })));
+            XLSX.utils.book_append_sheet(wb, scoresWS, 'สรุปคะแนน');
+
+            XLSX.writeFile(wb, `รายงานกิจกรรมความดี-${new Date().toLocaleDateString('th-TH').replace(/\//g, '-')}.xlsx`);
+            showAlert('ส่งออก Excel สำเร็จ!', 'success');
+        }
+
+        function printReport() {
+            const printWindow = window.open('', '_blank');
+            const totalPoints = Object.values(studentScores).reduce((s, c) => s + c, 0);
+            const today = new Date().toLocaleDateString('th-TH', {dateStyle: 'full'});
+            const top10 = Object.entries(studentScores).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+            // Header: โลโก้ + ชื่อโรงเรียน
+            const logoHtml = appSettings.logo ? `<img src="${appSettings.logo}" style="height:80px; margin-bottom:10px;">` : '';
+            const schoolNameHtml = appSettings.schoolName ? `<h2 style="margin:5px 0;">${escapeHtml(appSettings.schoolName)}</h2>` : '';
+            const schoolYearHtml = appSettings.schoolYear ? `<p style="margin:5px 0;">ปีการศึกษา ${escapeHtml(appSettings.schoolYear)}</p>` : '';
+            const schoolAddressHtml = appSettings.schoolAddress ? `<p style="margin:5px 0; font-size:14px;">${escapeHtml(appSettings.schoolAddress)}</p>` : '';
+
+            // Signatures section
+            let signaturesHtml = '';
+            const hasDirector = appSettings.directorName || appSettings.directorSignature;
+            const hasDeputy = appSettings.deputyName || appSettings.deputySignature;
+            if (hasDirector || hasDeputy) {
+                signaturesHtml = '<div class="signatures-section">';
+                if (hasDirector) {
+                    const dSig = appSettings.directorSignature ? `<img src="${appSettings.directorSignature}" style="height:60px; margin-bottom:5px;">` : '<div style="height:60px;"></div>';
+                    signaturesHtml += `
+                        <div class="signature-block">
+                            ${dSig}
+                            <div class="sig-line">(${escapeHtml(appSettings.directorName || '....................................')})</div>
+                            <div class="sig-position">${escapeHtml(appSettings.directorPosition || 'ผู้อำนวยการโรงเรียน')}</div>
+                        </div>`;
+                }
+                if (hasDeputy) {
+                    const dpSig = appSettings.deputySignature ? `<img src="${appSettings.deputySignature}" style="height:60px; margin-bottom:5px;">` : '<div style="height:60px;"></div>';
+                    signaturesHtml += `
+                        <div class="signature-block">
+                            ${dpSig}
+                            <div class="sig-line">(${escapeHtml(appSettings.deputyName || '....................................')})</div>
+                            <div class="sig-position">${escapeHtml(appSettings.deputyPosition || 'รองผู้อำนวยการโรงเรียน')}</div>
+                        </div>`;
+                }
+                signaturesHtml += '</div>';
+            }
+
+            const printContent = `<!DOCTYPE html><html lang="th"><head>
+                <meta charset="UTF-8">
+                <title>รายงานกิจกรรม</title>
+                <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+                <style>
+                    body { font-family: 'Sarabun', sans-serif; padding: 30px; color: #000; }
+                    .header-print { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+                    .header-print h1 { font-size: 22px; margin: 10px 0; }
+                    .info-section { margin: 20px 0; font-size: 15px; }
+                    .info-section p { margin: 5px 0; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                    th, td { border: 1px solid #333; padding: 8px; text-align: center; }
+                    th { background: #e0e0e0; }
+                    h2 { text-align: center; margin-top: 25px; font-size: 18px; }
+                    .signatures-section { display: flex; justify-content: space-around; margin-top: 60px; page-break-inside: avoid; }
+                    .signature-block { text-align: center; min-width: 200px; }
+                    .sig-line { border-top: 1px dotted #333; padding-top: 5px; margin-top: 5px; font-weight: bold; }
+                    .sig-position { font-size: 14px; color: #555; margin-top: 3px; }
+                    @media print { body { padding: 15px; } }
+                </style>
+            </head><body>
+                <div class="header-print">
+                    ${logoHtml}
+                    ${schoolNameHtml}
+                    ${schoolYearHtml}
+                    ${schoolAddressHtml}
+                    <h1>รายงานสรุปกิจกรรมความดี</h1>
+                </div>
+                <div class="info-section">
+                    <p><strong>วันที่พิมพ์:</strong> ${today}</p>
+                    <p><strong>บันทึกทั้งหมด:</strong> ${goodDeedRecords.length} ครั้ง</p>
+                    <p><strong>คะแนนรวมทั้งหมด:</strong> ${totalPoints.toLocaleString()} คะแนน</p>
+                    <p><strong>จำนวนนักเรียนทั้งหมด:</strong> ${allStudents.length} คน</p>
+                </div>
+                <h2>นักเรียนยอดเยี่ยม 10 อันดับ</h2>
+                <table>
+                    <thead><tr><th>อันดับ</th><th>ชื่อ-นามสกุล</th><th>คะแนนรวม</th></tr></thead>
+                    <tbody>
+                        ${top10.length > 0
+                            ? top10.map(([n,s],i)=>`<tr><td>${i+1}</td><td style="text-align:left;">${escapeHtml(n)}</td><td>${s.toLocaleString()}</td></tr>`).join('')
+                            : '<tr><td colspan="3">ยังไม่มีข้อมูล</td></tr>'}
+                    </tbody>
+                </table>
+                ${signaturesHtml}
+            </body></html>`;
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            setTimeout(() => printWindow.print(), 500);
+        }
+
+        // --- Custom Modals ---
+        function showModal(message, type = 'confirm') {
+            const modal = document.getElementById('customModal');
+            document.getElementById('modalMessage').textContent = message;
+            const input = document.getElementById('modalInput');
+            input.style.display = type === 'prompt' ? 'block' : 'none';
+            if (type === 'prompt') input.value = '';
+            modal.style.display = 'block';
+            if (type === 'prompt') setTimeout(() => input.focus(), 100);
+        }
+        function hideModal() {
+            document.getElementById('customModal').style.display = 'none';
+            if (modalCallback) modalCallback = null;
+        }
+        function customConfirm(message) {
+            return new Promise(resolve => {
+                showModal(message, 'confirm');
+                modalCallback = (result) => resolve(result);
+            });
+        }
+        function customPrompt(message) {
+            return new Promise(resolve => {
+                showModal(message, 'prompt');
+                modalCallback = (result) => resolve(result);
+            });
+        }
+
+        // --- DOMContentLoaded ---
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFromStorage();
+            setCurrentDate();
+            setupSearch();
+            setupActivityButtons();
+            setupGoodDeedForm();
+            setupStudentManagement();
+            setupSettingsForm();
+            loadSettingsToForm();
+            document.getElementById('recordsTableBody').addEventListener('click', handleRecordActions);
+            document.getElementById('remainingItemsBody').addEventListener('click', handleItemClaim);
+
+            // Modal listeners
+            document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+                const input = document.getElementById('modalInput');
+                const result = input.style.display === 'none' ? true : input.value;
+                if (modalCallback) modalCallback(result);
+                hideModal();
+            });
+            document.getElementById('modalCancelBtn').addEventListener('click', () => {
+                if (modalCallback) modalCallback(false);
+                hideModal();
+            });
+
+            updateDisplay();
+            boot();
+        });
+    </script>
+</body>
+</html>
