@@ -131,16 +131,6 @@
             </div>
         </div>
 
-        <!-- Backup/Import Bar -->
-        <div class="backup-bar">
-            <span class="info-text"></span>
-            <button class="btn btn-success" onclick="backupData()">💾 สำรองข้อมูล (Backup)</button>
-            <button class="btn btn-primary" onclick="document.getElementById('importFileInput').click()">📥 นำเข้าข้อมูล (Import)</button>
-            <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importData(event)">
-            <button class="btn btn-danger" onclick="clearAllData()">🗑️ ล้างข้อมูลทั้งหมด</button>
-            <button class="btn btn-primary" onclick="reloadFromServer(true)">🔄 รีเฟรช</button>
-        </div>
-
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="showTab(event, 'record-tab')">📝 บันทึกความดี</button>
             <button class="nav-tab" onclick="showTab(event, 'items-tab')">📦 รายการของ</button>
@@ -667,7 +657,6 @@
             if (!j.ok) {
                 const err = new Error(j.message || j.error || 'เกิดข้อผิดพลาด');
                 err.code = j.error;
-                if (j.error === 'EXPIRED') showNotice(j.message || 'ใบอนุญาตหมดอายุ');
                 throw err;
             }
             return j.data;
@@ -710,7 +699,7 @@
                 pending--;
                 setStatus('err');
                 showAlert('บันทึกขึ้นระบบไม่สำเร็จ: ' + e.message, 'danger', 8000);
-                if (e.code !== 'EXPIRED') { lastCacheStr = ''; await reloadFromServer(true, true); }
+                { lastCacheStr = ''; await reloadFromServer(true, true); }
             });
         }
 
@@ -785,7 +774,6 @@
                 }
                 setStatus('ok');
             } catch (e) {
-                if (e.code === 'EXPIRED') return;
                 setStatus('offline');
                 if (!quiet) showAlert('เชื่อมต่อระบบไม่ได้: ' + e.message, 'warning', 6000);
             }
